@@ -20,14 +20,12 @@ pipeline {
 
         stage('Test') {
             steps {
-
                 withCredentials([
                     string(
                         credentialsId: 'gemini-api-key',
                         variable: 'GEMINI_API_KEY'
                     )
                 ]) {
-
                     bat '''
                         "C:\\Users\\M680499\\AppData\\Local\\Programs\\Python\\Python314\\python.exe" -m pytest test.py -v
                     '''
@@ -37,7 +35,6 @@ pipeline {
 
         stage('Create Artifact') {
             steps {
-
                 powershell '''
                     Compress-Archive `
                         -Path app.py,routes,services,static,templates,embeddings,requirements.txt,test.py `
@@ -51,7 +48,6 @@ pipeline {
 
         stage('DEV Approval') {
             steps {
-
                 input message: 'Testing completed. Approve deployment to DEV?',
                       ok: 'Deploy to DEV'
             }
@@ -59,7 +55,6 @@ pipeline {
 
         stage('Deploy DEV') {
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dev-server-credential',
@@ -67,9 +62,7 @@ pipeline {
                         passwordVariable: 'DEV_PASSWORD'
                     )
                 ]) {
-
                     powershell '''
-
                         $username = $env:DEV_USERNAME
 
                         $password = ConvertTo-SecureString `
@@ -83,22 +76,29 @@ pipeline {
                                 $password
                             )
 
-                        Write-Host "Connecting to DEV server..."
+                        Write-Host "Connecting to DEV server Lab-VM4..."
 
                         New-PSDrive `
                             -Name "DEV" `
                             -PSProvider FileSystem `
-                            -Root "\\\\Lab-VM3\\C$" `
+                            -Root "\\\\Lab-VM4\\C$" `
                             -Credential $cred
 
                         Write-Host "Copying SCCM chatbot artifact..."
+
+                        if (-not (Test-Path "DEV:\\CICD\\DEV")) {
+                            New-Item `
+                                -Path "DEV:\\CICD\\DEV" `
+                                -ItemType Directory `
+                                -Force
+                        }
 
                         Copy-Item `
                             "sccm-chatbot-build.zip" `
                             "DEV:\\CICD\\DEV\\sccm-chatbot-build.zip" `
                             -Force
 
-                        Write-Host "Artifact copied to Lab-VM3."
+                        Write-Host "Artifact copied to Lab-VM4."
 
                         Remove-PSDrive `
                             -Name "DEV"
@@ -109,7 +109,6 @@ pipeline {
 
         stage('Deploy DEV Application') {
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dev-server-credential',
@@ -117,9 +116,7 @@ pipeline {
                         passwordVariable: 'DEV_PASSWORD'
                     )
                 ]) {
-
                     powershell '''
-
                         $username = $env:DEV_USERNAME
 
                         $password = ConvertTo-SecureString `
@@ -133,45 +130,56 @@ pipeline {
                                 $password
                             )
 
-                        Write-Host "Deploying SCCM chatbot to DEV..."
+                        Write-Host "Deploying SCCM chatbot to Lab-VM4 DEV..."
 
                         Invoke-Command `
-                            -ComputerName Lab-VM3 `
+                            -ComputerName Lab-VM4 `
                             -Credential $cred `
                             -Authentication Kerberos `
                             -ScriptBlock {
+
+                                $applicationPath = "C:\\CICD\\DEV\\SCCM_chat_box"
+
+                                Write-Host "Creating DEV application directory..."
+
+                                if (-not (Test-Path $applicationPath)) {
+                                    New-Item `
+                                        -Path $applicationPath `
+                                        -ItemType Directory `
+                                        -Force
+                                }
 
                                 Write-Host "Extracting chatbot artifact..."
 
                                 Expand-Archive `
                                     -Path "C:\\CICD\\DEV\\sccm-chatbot-build.zip" `
-                                    -DestinationPath "C:\\CICD\\DEV\\SCCM_chat_box" `
+                                    -DestinationPath $applicationPath `
                                     -Force
+
+                                Write-Host "Checking application files..."
+
+                                if (-not (Test-Path "$applicationPath\\app.py")) {
+                                    Write-Error "app.py was not found after extraction."
+                                    exit 1
+                                }
 
                                 Write-Host "Creating Python virtual environment..."
 
-                                Set-Location `
-                                    "C:\\CICD\\DEV\\SCCM_chat_box"
-
-                                if (Test-Path "venv") {
-
+                                if (Test-Path "$applicationPath\\venv") {
                                     Write-Host "Existing virtual environment found."
-
                                 }
                                 else {
-
-                                    Write-Host "Creating new virtual environment..."
-
                                     & "C:\\Users\\M680499\\AppData\\Local\\Programs\\Python\\Python314\\python.exe" `
-                                        -m venv venv
+                                        -m venv "$applicationPath\\venv"
                                 }
 
                                 Write-Host "Installing Python dependencies..."
 
-                                & ".\\venv\\Scripts\\python.exe" `
-                                    -m pip install -r requirements.txt
+                                & "$applicationPath\\venv\\Scripts\\python.exe" `
+                                    -m pip install -r "$applicationPath\\requirements.txt"
 
                                 Write-Host "DEV application deployment completed."
+
                             }
                     '''
                 }
@@ -180,7 +188,6 @@ pipeline {
 
         stage('Configure DEV Environment') {
             steps {
-
                 withCredentials([
                     string(
                         credentialsId: 'gemini-api-key',
@@ -192,9 +199,7 @@ pipeline {
                         passwordVariable: 'DEV_PASSWORD'
                     )
                 ]) {
-
                     powershell '''
-
                         $username = $env:DEV_USERNAME
 
                         $password = ConvertTo-SecureString `
@@ -208,10 +213,10 @@ pipeline {
                                 $password
                             )
 
-                        Write-Host "Configuring DEV environment..."
+                        Write-Host "Configuring DEV environment on Lab-VM4..."
 
                         Invoke-Command `
-                            -ComputerName Lab-VM3 `
+                            -ComputerName Lab-VM4 `
                             -Credential $cred `
                             -Authentication Kerberos `
                             -ScriptBlock {
@@ -244,7 +249,6 @@ pipeline {
 
         stage('Start DEV Application') {
             steps {
-
                 withCredentials([
                     usernamePassword(
                         credentialsId: 'dev-server-credential',
@@ -252,9 +256,7 @@ pipeline {
                         passwordVariable: 'DEV_PASSWORD'
                     )
                 ]) {
-
                     powershell '''
-
                         $username = $env:DEV_USERNAME
 
                         $password = ConvertTo-SecureString `
@@ -268,18 +270,17 @@ pipeline {
                                 $password
                             )
 
-                        Write-Host "Starting SCCM chatbot on DEV..."
+                        Write-Host "Starting SCCM chatbot on Lab-VM4..."
 
                         Invoke-Command `
-                            -ComputerName Lab-VM3 `
+                            -ComputerName Lab-VM4 `
                             -Credential $cred `
                             -Authentication Kerberos `
                             -ScriptBlock {
 
                                 $applicationPath = "C:\\CICD\\DEV\\SCCM_chat_box"
 
-                                Set-Location `
-                                    $applicationPath
+                                Set-Location $applicationPath
 
                                 Write-Host "Checking existing Flask process..."
 
@@ -300,6 +301,7 @@ pipeline {
                                             -Id $process.ProcessId `
                                             -Force `
                                             -ErrorAction SilentlyContinue
+
                                     }
 
                                     Start-Sleep -Seconds 2
@@ -315,7 +317,7 @@ pipeline {
 
                                 Start-Sleep -Seconds 5
 
-                                Write-Host "SCCM chatbot DEV application started."
+                                Write-Host "SCCM chatbot DEV application started on Lab-VM4."
 
                             }
                     '''
@@ -325,7 +327,6 @@ pipeline {
 
         stage('DEV Approval for QA') {
             steps {
-
                 input message: 'DEV testing completed. Approve deployment to QA?',
                       ok: 'Deploy to QA'
             }
@@ -333,20 +334,7 @@ pipeline {
 
         stage('Deploy QA') {
             steps {
-
                 echo 'QA deployment stage is ready.'
-
-                /*
-                 * QA deployment can be added here.
-                 *
-                 * Example:
-                 *
-                 * Copy artifact to QA server
-                 * Create virtual environment
-                 * Install requirements
-                 * Configure Gemini API key
-                 * Start application
-                 */
             }
         }
     }
