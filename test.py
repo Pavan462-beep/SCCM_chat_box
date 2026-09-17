@@ -1,54 +1,59 @@
-import requests
+import pytest
+
+from app import app
 
 
-URL = "http://127.0.0.1:5000/api/chat"
+@pytest.fixture
+def client():
+    app.config["TESTING"] = True
+
+    with app.test_client() as client:
+        yield client
 
 
-def test_chat(message):
+def test_chat_api_exists(client):
+    response = client.post(
+        "/api/chat",
+        json={"message": "hi"}
+    )
 
-    print("\n==============================")
-    print("TEST MESSAGE:")
-    print(message)
-
-    try:
-
-        response = requests.post(
-            URL,
-            json={
-                "message": message
-            },
-            timeout=60
-        )
-
-        print("\nSTATUS CODE:")
-        print(response.status_code)
-
-        print("\nRESPONSE:")
-
-        data = response.json()
-
-        print(data)
-
-        if response.status_code == 200:
-
-            print("\nTEST PASSED")
-
-        else:
-
-            print("\nTEST FAILED")
-
-    except Exception as e:
-
-        print("\nTEST ERROR:")
-        print(e)
+    assert response.status_code == 200
 
 
-# ============================================================
-# Test Cases
-# ============================================================
+def test_chat_requires_message(client):
+    response = client.post(
+        "/api/chat",
+        json={}
+    )
 
-test_chat("hi")
+    assert response.status_code == 400
 
-test_chat("I need Power BI")
 
-test_chat("I need dashboard software")
+def test_chat_rejects_empty_message(client):
+    response = client.post(
+        "/api/chat",
+        json={"message": ""}
+    )
+
+    assert response.status_code == 400
+
+
+def test_chat_returns_json(client):
+    response = client.post(
+        "/api/chat",
+        json={"message": "hi"}
+    )
+
+    assert response.is_json
+
+
+def test_chat_response_contains_success(client):
+    response = client.post(
+        "/api/chat",
+        json={"message": "hi"}
+    )
+
+    data = response.get_json()
+
+    assert "success" in data
+    assert data["success"] is True

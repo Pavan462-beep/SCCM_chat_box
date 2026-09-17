@@ -4,3 +4,4 @@ google-genai
 faiss-cpu
 sentence-transformers
 numpy
+pytest
