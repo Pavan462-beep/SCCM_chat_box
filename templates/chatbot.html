@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1.0">
+
+    <title>SCCM Software Assistant</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='css/chatbot.css') }}">
+
+</head>
+
+
+<body>
+
+<div class="page-container">
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header class="chat-header">
+
+        <div class="header-left">
+
+            <div class="bot-icon">
+                💻
+            </div>
+
+            <div>
+
+                <h1>
+                    SCCM Software Assistant
+                </h1>
+
+                <p>
+                    Software discovery & installation assistance
+                </p>
+
+            </div>
+
+        </div>
+
+
+        <div class="status">
+
+            <span class="status-dot"></span>
+
+            Assistant Online
+
+        </div>
+
+    </header>
+
+
+    <!-- =====================================================
+         CHAT AREA
+    ====================================================== -->
+
+    <main id="chatContainer"
+          class="chat-container">
+
+
+        <!-- Welcome Message -->
+
+        <div class="message bot-message">
+
+            <div class="avatar bot-avatar">
+                S
+            </div>
+
+            <div class="message-content">
+
+                <div class="message-name">
+                    Software Assistant
+                </div>
+
+                <div class="message-bubble">
+
+                    <h3>
+                        Welcome 👋
+                    </h3>
+
+                    <p>
+                        I can help you find software available
+                        through SCCM.
+                    </p>
+
+                    <p>
+                        Try something like:
+                    </p>
+
+                    <div class="example-box">
+
+                        "I need dashboard software"
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </main>
+
+
+    <!-- =====================================================
+         INPUT AREA
+    ====================================================== -->
+
+    <footer class="chat-footer">
+
+        <div class="input-container">
+
+            <input
+                type="text"
+                id="messageInput"
+                placeholder="Ask me about software..."
+                autocomplete="off"
+            >
+
+            <button
+                id="sendButton"
+                class="send-button">
+
+                ➤
+
+            </button>
+
+        </div>
+
+
+        <div class="footer-text">
+
+            SCCM Software Assistant
+            <span>•</span>
+            Internal use only
+
+        </div>
+
+    </footer>
+
+
+</div>
+
+
+<script src="{{ url_for('static', filename='js/chatbot.js') }}">
+</script>
+
+</body>
+
+</html>
